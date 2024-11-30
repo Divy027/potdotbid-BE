@@ -5,6 +5,7 @@
     "hardhat": "^2.22.16"
   },
   "dependencies": {
+    "@chainlink/contracts": "^1.3.0",
     "@openzeppelin/contracts": "^5.1.0",
     "@uniswap/v2-core": "^1.0.1",
     "@uniswap/v2-periphery": "^1.1.0-beta.0",
@@ -12,7 +13,7 @@
     "v2-core": "^0.0.1-security"
   },
   "scripts": {
-    "sn": "npx hardhat node",
+    "sn": "npx hardhat node --network hardhat",
     "t": "npx hardhat test --network localhost"
   }
 }

@@ -6,6 +6,19 @@ const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
+const routerABI = [
+  {
+    "constant": true,
+    "inputs": [
+      { "name": "amountIn", "type": "uint256" },
+      { "name": "path", "type": "address[]" }
+    ],
+    "name": "getAmountsOut",
+    "outputs": [{ "name": "amounts", "type": "uint256[]" }],
+    "type": "function"
+  }
+];
+
 describe("Lock", function () {
   // We define a fixture to reuse the same setup in every test.
   // We use loadFixture to run this setup once, snapshot that state,
@@ -22,25 +35,64 @@ describe("Lock", function () {
       "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f",
       "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
       maxPurchaseAmount
-
     );
+
+    console.log(bondingCurve.target)
+
+    const router = new ethers.Contract("0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D", routerABI, owner)
 
     return { bondingCurve, owner };
   }
 
   describe("Deployment", function () {
     it("buy and sell", async function () {
-      const { bondingCurve, owner } = await loadFixture(deployOneYearLockFixture);
+      const weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+      const { bondingCurve, owner, router } = await loadFixture(deployOneYearLockFixture);
 
       // create token
       let tx = bondingCurve.createAndInitPurchase("visahl", "vis", {
-        value: ethers.parseEther("0.1")  // 0.1 ETH as the value
+        value: ethers.parseEther("10")  // 0.1 ETH as the value
       });
 
       await expect(tx)
         .to.emit(bondingCurve, "TokenPurchased")
 
-      console.log(bondingCurve.target)
+      // get token address
+      const tokenAddr = await bondingCurve.tokenAddress(1)
+
+      // get eth amount
+      let ethAmount = ethers.parseEther("10")
+      let tokenAmount = await bondingCurve.getTokenAmountByPurchase(tokenAddr, ethAmount);
+
+      // const ethAmount = await bondingCurve.getEthAmountToBuyTokens(tokenAddr, tokenAmount);
+      console.log("tokenAmount : ", tokenAmount)
+      // purchase token
+      tx = await bondingCurve.purchaseToken(tokenAddr, tokenAmount, {
+        value: ethAmount.toString()
+      });
+      await tx.wait()
+
+      ///
+      // // get eth amount
+      ethAmount = ethers.parseEther("0.0002")
+      tokenAmount = await bondingCurve.getTokenAmountByPurchase(tokenAddr, ethAmount);
+
+      // const ethAmount = await bondingCurve.getEthAmountToBuyTokens(tokenAddr, tokenAmount);
+      console.log("tokenAmount : ", tokenAmount)
+      // purchase token
+      tx = await bondingCurve.purchaseToken(tokenAddr, tokenAmount, {
+        value: ethAmount.toString()
+      });
+      await tx.wait()
+
+      // buy token on dex //////////////
+      // estimate amount
+      // const estimatedTokenAmount = await router.getAmountsOut(ethAmount, [tokenAddr])
+
+      // console.log("estmated amoutn : ", estimatedTokenAmount.toString())
+
+
+      // console.log(bondingCurve.target)
     });
 
     // it("Should set the right owner", async function () {

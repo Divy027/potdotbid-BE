@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.27;
+pragma solidity ^0.8.11;
 
 import "./Token.sol";
 
@@ -7,6 +7,7 @@ import "./Token.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
+import "hardhat/console.sol";
 
 contract BondingCurve {
     // Events
@@ -316,7 +317,10 @@ contract BondingCurve {
         payable(vault).transfer(LAUNCH_FEE);
 
         // Create new token
+
+        console.log("creating...");
         Token newToken = new Token(name, symbol, TOKEN_SUPPLY, address(this));
+
         address newTokenAddress = address(newToken);
         tokenCount++;
         tokenAddress[tokenCount] = newTokenAddress;
@@ -400,6 +404,8 @@ contract BondingCurve {
             "BondingCurve: Exceeds max purchase amount"
         );
         // this is redundant but I added it just for brevity
+        console.log("TokenReserve : ", virtualPools[token].TokenReserve);
+        console.log("amountMin : ", amountMin);
         require(
             amountMin <= virtualPools[token].TokenReserve,
             "BondingCurve: Cannot purchase more tokens than available"
@@ -412,6 +418,8 @@ contract BondingCurve {
         if (tokenAmount > virtualPools[token].TokenReserve) {
             tokenAmount = virtualPools[token].TokenReserve;
         }
+
+        console.log(tokenAmount, amountMin);
         require(tokenAmount >= amountMin, "BondingCurve: Slippage exceeded");
 
         uint256 actualEthUsed = getEthAmountToBuyTokens(token, tokenAmount);
@@ -501,6 +509,7 @@ contract BondingCurve {
             pool.TokenReserve == 0 &&
             pool.ETHReserve >= (LAUNCH_THRESHOLD - 0.002 ether)
         ) {
+            console.log("pool launched!!!");
             pool.launched = true;
             emit TokenLaunched(token);
 
@@ -520,6 +529,7 @@ contract BondingCurve {
                 address(this)
             );
             Token(token).burn(remainingTokenBalance);
+            Token(token).setLaunchedOnDex(true);
         }
     }
 
