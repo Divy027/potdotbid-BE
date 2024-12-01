@@ -11,9 +11,3 @@ REPORT_GAS=true npx hardhat test
 npx hardhat node
 npx hardhat ignition deploy ./ignition/modules/Lock.js
 ```
-
-Todo
-1) Test chainlink Upkeep for automatic calls 
-2) every month to every day for random selection
-3) selected address can sell 10% of their holding
-4) Change fees of bonding contract (pump fun)

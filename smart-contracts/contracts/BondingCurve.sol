@@ -49,9 +49,9 @@ contract BondingCurve {
     int128 private constant B = 5e18; // Fixed-point representation of 5 (scaled by 1e18)
     uint256 private constant A = 848200000000000; // Precomputed 'a' scaled by 1e18
 
-    uint256 public constant LAUNCH_FEE = 0.0002 ether;
-    uint256 public constant LAUNCH_REWARD = 0.05 ether;
-    uint256 public constant LAUNCH_THRESHOLD = 20 ether;
+    uint256 public constant DEV_FEE = 0.1 ether;
+    uint256 public constant LAUNCH_REWARD = 0.25 ether; // send to fee reciver after laucing on
+    uint256 public constant LAUNCH_THRESHOLD = 3 ether;
     // 1 billion * 18 decimals
     uint256 public constant TOKEN_SUPPLY = 1 * 1e9 * ONE;
     // SUBJECT TO CHANGE
@@ -93,6 +93,8 @@ contract BondingCurve {
         _; // This is a placeholder that represents the execution of the function
     }
 
+    address feeReciver;
+
     constructor(
         address _vault,
         address _factory,
@@ -104,6 +106,7 @@ contract BondingCurve {
         factory = _factory;
         router = _router;
         owner = msg.sender;
+        feeReciver = _vault;
 
         // Calculate K
         uint256 exp_b = exp(b); // e^(b), scaled by 1e18
@@ -250,7 +253,7 @@ contract BondingCurve {
         uint256 C_S_old = calculateCumulativeCost(S_old);
 
         // New cumulative cost after adding ethAmount
-        uint256 C_S_new = C_S_old + ethAmount;
+        uint256 C_S_new = C_S_old + (ethAmount * 99) / 100;
 
         // Solve for S_new using the new cumulative cost
         uint256 S_new = calculateSFromCumulativeCost(C_S_new);
@@ -276,7 +279,7 @@ contract BondingCurve {
         // ETH required = C(S_new) - C(S_old)
         ethAmount = C_S_new - C_S_old;
 
-        return ethAmount;
+        return (ethAmount * 101) / 100;
     }
 
     function getEthAmountBySale(
@@ -300,7 +303,7 @@ contract BondingCurve {
         // ETH received = C(S_old) - C(S_new)
         ethAmount = C_S_old - C_S_new;
 
-        return ethAmount;
+        return (ethAmount * 101) / 100;
     }
 
     // Token Creation
@@ -309,15 +312,13 @@ contract BondingCurve {
         string calldata symbol
     ) external payable {
         require(!pause, "BondingCurve: Contract is paused");
-        require(msg.value >= LAUNCH_FEE, "BondingCurve: Insufficient fees");
 
-        uint256 initialFunds = msg.value - LAUNCH_FEE;
+        uint fee = (msg.value * 1) / 100;
+        uint256 initialFunds = msg.value - fee;
 
-        // Transfer LAUNCH_FEE to vault
-        payable(vault).transfer(LAUNCH_FEE);
+        payable(feeReciver).transfer(fee);
 
         // Create new token
-
         console.log("creating...");
         Token newToken = new Token(name, symbol, TOKEN_SUPPLY, address(this));
 
@@ -404,14 +405,16 @@ contract BondingCurve {
             "BondingCurve: Exceeds max purchase amount"
         );
         // this is redundant but I added it just for brevity
-        console.log("TokenReserve : ", virtualPools[token].TokenReserve);
-        console.log("amountMin : ", amountMin);
+
         require(
             amountMin <= virtualPools[token].TokenReserve,
             "BondingCurve: Cannot purchase more tokens than available"
         );
 
         uint256 ethAmount = msg.value;
+        uint fee = (ethAmount * 1) / 100;
+
+        payable(feeReciver).transfer(fee); // 1% of msg.value
 
         // Calculate token amount to send
         uint256 tokenAmount = getTokenAmountByPurchase(token, ethAmount);
@@ -423,7 +426,6 @@ contract BondingCurve {
         require(tokenAmount >= amountMin, "BondingCurve: Slippage exceeded");
 
         uint256 actualEthUsed = getEthAmountToBuyTokens(token, tokenAmount);
-        actualEthUsed = actualEthUsed;
 
         require(
             actualEthUsed <= ethAmount,
@@ -436,7 +438,7 @@ contract BondingCurve {
             "BondingCurve: Leftover ETH cannot be negative"
         );
 
-        virtualPools[token].ETHReserve += (ethAmount - leftoverEth);
+        virtualPools[token].ETHReserve += (ethAmount - leftoverEth - fee);
         virtualPools[token].TokenReserve -= tokenAmount;
 
         // Transfer tokens to buyer
@@ -487,6 +489,11 @@ contract BondingCurve {
         // Check if ETH amount is greater than amountMin
         require(ethAmount >= amountMin, "BondingCurve: Slippage exceeded");
 
+        uint fee = ethAmount / 100;
+
+        payable(feeReciver).transfer(fee); // 1% of ethAmount
+
+        ethAmount = ethAmount - fee;
         // Update reserves
         virtualPools[token].ETHReserve -= ethAmount;
         virtualPools[token].TokenReserve += tokenAmount;
@@ -509,7 +516,6 @@ contract BondingCurve {
             pool.TokenReserve == 0 &&
             pool.ETHReserve >= (LAUNCH_THRESHOLD - 0.002 ether)
         ) {
-            console.log("pool launched!!!");
             pool.launched = true;
             emit TokenLaunched(token);
 
@@ -518,7 +524,11 @@ contract BondingCurve {
 
             // Provide liquidity
             uint tokenAmount = TOKEN_SUPPLY - TOTAL_SALE;
-            uint ethAmount = pool.ETHReserve - LAUNCH_REWARD;
+            uint ethAmount = pool.ETHReserve - LAUNCH_REWARD - DEV_FEE;
+
+            payable(feeReciver).transfer(LAUNCH_REWARD);
+            payable(tokenCreator[token]).transfer(DEV_FEE);
+
             uint liquidity = _provideLiquidity(token, tokenAmount, ethAmount);
 
             // Burn the LP Token
@@ -530,6 +540,8 @@ contract BondingCurve {
             );
             Token(token).burn(remainingTokenBalance);
             Token(token).setLaunchedOnDex(true);
+
+            console.log("pool launched!!!");
         }
     }
 
@@ -538,6 +550,8 @@ contract BondingCurve {
             token,
             IUniswapV2Router02(router).WETH()
         );
+
+        console.log("pair address : ", pair);
         return pair;
     }
 
