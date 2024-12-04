@@ -7,22 +7,64 @@ import {VRFV2PlusClient} from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/V
 import "hardhat/console.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import {AutomationCompatibleInterface} from "@chainlink/contracts/src/v0.8/automation/interfaces/AutomationCompatibleInterface.sol";
+import {LinkTokenInterface} from "@chainlink/contracts/src/v0.8/shared/interfaces/LinkTokenInterface.sol";
+import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/shared/access/ConfirmedOwner.sol";
+
+struct RegistrationParams {
+    string name;
+    bytes encryptedEmail;
+    address upkeepContract;
+    uint32 gasLimit;
+    address adminAddress;
+    uint8 triggerType;
+    bytes checkData;
+    bytes triggerConfig;
+    bytes offchainConfig;
+    uint96 amount;
+}
+
+/**
+ * string name = "test upkeep";
+ * bytes encryptedEmail = 0x;
+ * address upkeepContract = 0x...;
+ * uint32 gasLimit = 500000;
+ * address adminAddress = 0x....;
+ * uint8 triggerType = 0;
+ * bytes checkData = 0x;
+ * bytes triggerConfig = 0x;
+ * bytes offchainConfig = 0x;
+ * uint96 amount = 1000000000000000000;
+ */
+
+interface AutomationRegistrarInterface {
+    function registerUpkeep(
+        RegistrationParams calldata requestParams
+    ) external returns (uint256);
+}
 
 contract Token is
     ERC20,
     VRFV2PlusWrapperConsumerBase,
+    ConfirmedOwner,
     AutomationCompatibleInterface
 {
+    LinkTokenInterface public immutable i_link =
+        LinkTokenInterface(0x514910771AF9Ca656af840dff83E8264EcF986CA);
+    AutomationRegistrarInterface public immutable i_registrar =
+        AutomationRegistrarInterface(
+            0x6B0B234fB2f380309D47A7E9391E29E9a179395a
+        );
+
     address private bondingCurveContract;
     bool private isLaunchedOnDex;
 
     // address wrapperAddress = 0x02aae1A04f9828517b3007f83f6181900CaD910c; // change it sepolia : 0x195f15F2d49d693cE265b4fB0fdDbE15b1850Cc1
-    uint32 public callbackGasLimit = 100000;
+    uint32 public callbackGasLimit = 300000;
     uint16 public requestConfirmations = 3;
     uint32 public numWords = 1;
 
     // Selection Parameters
-    uint256 public constant DAILY_SELECTION_INTERVAL = 1 days;
+    uint256 public constant DAILY_SELECTION_INTERVAL = 1 seconds; // 1 days
     uint256 public lastSelectionTime;
     address[] public selectedAddresses;
 
@@ -55,10 +97,24 @@ contract Token is
         address _owner
     )
         ERC20(_name, _symbol)
+        ConfirmedOwner(msg.sender)
         VRFV2PlusWrapperConsumerBase(0x02aae1A04f9828517b3007f83f6181900CaD910c) // wrapperAddress etherum
     {
         bondingCurveContract = _owner;
         _mint(_owner, _initialSupply);
+    }
+
+    function registerAndPredictID(RegistrationParams memory params) public {
+        // LINK must be approved for transfer - this can be done every time or once
+        // with an infinite approval
+        i_link.approve(address(i_registrar), params.amount);
+        uint256 upkeepID = i_registrar.registerUpkeep(params);
+        if (upkeepID != 0) {
+            // DEV - Use the upkeepID however you see fit
+            console.log("upkeepID value : ", upkeepID);
+        } else {
+            revert("auto-approve disabled");
+        }
     }
 
     // Override transfer method with additional checks
@@ -131,6 +187,7 @@ contract Token is
         override
         returns (bool upkeepNeeded, bytes memory /* performData */)
     {
+        console.log("hi");
         upkeepNeeded = (block.timestamp >=
             lastSelectionTime + DAILY_SELECTION_INTERVAL);
     }
@@ -138,10 +195,12 @@ contract Token is
     // Perform the upkeep
     function performUpkeep(bytes calldata /* performData */) external override {
         (bool upkeepNeeded, ) = checkUpkeep("");
+
         if (!upkeepNeeded) {
             revert UpkeepNotNeeded();
         }
 
+        console.log("perform upkeep ------------------------------------->");
         // Clear previous eligible addresses
         delete eligibleAddressList;
 
@@ -165,6 +224,8 @@ contract Token is
             (block.timestamp % (arrayLength / 2)) + 1
         );
 
+        console.log("random words : ", numberOfRandomNumbers);
+
         uint256 requestId;
         uint256 reqPrice;
         (requestId, reqPrice) = requestRandomness(
@@ -174,13 +235,16 @@ contract Token is
             extraArgs
         );
 
+        console.log("HI", requestId);
+
         lastSelectionTime = block.timestamp;
     }
 
     function fulfillRandomWords(
         uint256 _requestId,
         uint256[] memory _randomWords
-    ) internal override {
+    ) internal virtual override {
+        console.log("hiiiiiiiiiii");
         require(eligibleAddressList.length > 0, "No eligible addresses");
         require(
             _randomWords.length <= eligibleAddressList.length,
@@ -192,6 +256,7 @@ contract Token is
         address[] memory winners = new address[](_randomWords.length);
 
         for (uint256 i = 0; i < _randomWords.length; i++) {
+            console.log("winnnnnnnnnnnnnnnnnnnn...............");
             uint256 randomIndex = _randomWords[i] % eligibleAddressList.length;
 
             // Find next available unique index
@@ -207,6 +272,8 @@ contract Token is
         }
 
         selectedAddresses = winners;
+        console.log("winner : ", selectedAddresses[0]);
+
         emit AddressesSelectedDaily(selectedAddresses, block.timestamp);
     }
 
@@ -215,11 +282,11 @@ contract Token is
         return holders;
     }
 
-    function getEligibleAddresses() external view returns (address[] memory) { // holders eligibile for selection
+    function getEligibleAddresses() external view returns (address[] memory) {
         return eligibleAddressList;
     }
 
-    function getCurrentSelectedAddresses() // winner address after selection
+    function getCurrentSelectedAddresses()
         external
         view
         returns (address[] memory)

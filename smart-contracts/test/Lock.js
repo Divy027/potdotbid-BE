@@ -6,30 +6,757 @@ const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
+const tokenAbi = [
+  // Replace with the actual ABI of your token contract
+  "function approve(address spender, uint256 amount) public returns (bool)",
+  "function transfer(address recipient, uint256 amount) public returns (bool)",
+  "function balanceOf(address account) public view returns (uint256)",
+  // Add more functions as needed
+];
 
-const tokenAbi = [{
-  "constant": false,
-  "inputs": [
-    {
-      "name": "spender",
-      "type": "address"
-    },
-    {
-      "name": "amount",
-      "type": "uint256"
-    }
-  ],
-  "name": "approve",
-  "outputs": [
-    {
-      "name": "",
-      "type": "bool"
-    }
-  ],
-  "payable": false,
-  "stateMutability": "nonpayable",
-  "type": "function"
-}]
+const upkeepTokenAbi = [
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "_name",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "_symbol",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_initialSupply",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "_owner",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "spender",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "allowance",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "needed",
+        "type": "uint256"
+      }
+    ],
+    "name": "ERC20InsufficientAllowance",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "balance",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "needed",
+        "type": "uint256"
+      }
+    ],
+    "name": "ERC20InsufficientBalance",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "approver",
+        "type": "address"
+      }
+    ],
+    "name": "ERC20InvalidApprover",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "receiver",
+        "type": "address"
+      }
+    ],
+    "name": "ERC20InvalidReceiver",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      }
+    ],
+    "name": "ERC20InvalidSender",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "spender",
+        "type": "address"
+      }
+    ],
+    "name": "ERC20InvalidSpender",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "have",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "want",
+        "type": "address"
+      }
+    ],
+    "name": "OnlyVRFWrapperCanFulfill",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "UpkeepNotNeeded",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address[]",
+        "name": "selectedAddresses",
+        "type": "address[]"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      }
+    ],
+    "name": "AddressesSelectedDaily",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "spender",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "value",
+        "type": "uint256"
+      }
+    ],
+    "name": "Approval",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "holder",
+        "type": "address"
+      }
+    ],
+    "name": "HolderAdded",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "seller",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "SellAttempted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "from",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "value",
+        "type": "uint256"
+      }
+    ],
+    "name": "Transfer",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "DAILY_SELECTION_INTERVAL",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "spender",
+        "type": "address"
+      }
+    ],
+    "name": "allowance",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "spender",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "value",
+        "type": "uint256"
+      }
+    ],
+    "name": "approve",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "balanceOf",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "burn",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "callbackGasLimit",
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "name": "",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes",
+        "name": "",
+        "type": "bytes"
+      }
+    ],
+    "name": "checkUpkeep",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "upkeepNeeded",
+        "type": "bool"
+      },
+      {
+        "internalType": "bytes",
+        "name": "",
+        "type": "bytes"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "decimals",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getBalance",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getCurrentSelectedAddresses",
+    "outputs": [
+      {
+        "internalType": "address[]",
+        "name": "",
+        "type": "address[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getEligibleAddresses",
+    "outputs": [
+      {
+        "internalType": "address[]",
+        "name": "",
+        "type": "address[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getHolders",
+    "outputs": [
+      {
+        "internalType": "address[]",
+        "name": "",
+        "type": "address[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getLinkToken",
+    "outputs": [
+      {
+        "internalType": "contract LinkTokenInterface",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "i_link",
+    "outputs": [
+      {
+        "internalType": "contract LinkTokenInterface",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "i_registrar",
+    "outputs": [
+      {
+        "internalType": "contract AutomationRegistrarInterface",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "i_vrfV2PlusWrapper",
+    "outputs": [
+      {
+        "internalType": "contract IVRFV2PlusWrapper",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "lastSelectionTime",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "name",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "numWords",
+    "outputs": [
+      {
+        "internalType": "uint32",
+        "name": "",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes",
+        "name": "",
+        "type": "bytes"
+      }
+    ],
+    "name": "performUpkeep",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_requestId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "_randomWords",
+        "type": "uint256[]"
+      }
+    ],
+    "name": "rawFulfillRandomWords",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "string",
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "internalType": "bytes",
+            "name": "encryptedEmail",
+            "type": "bytes"
+          },
+          {
+            "internalType": "address",
+            "name": "upkeepContract",
+            "type": "address"
+          },
+          {
+            "internalType": "uint32",
+            "name": "gasLimit",
+            "type": "uint32"
+          },
+          {
+            "internalType": "address",
+            "name": "adminAddress",
+            "type": "address"
+          },
+          {
+            "internalType": "uint8",
+            "name": "triggerType",
+            "type": "uint8"
+          },
+          {
+            "internalType": "bytes",
+            "name": "checkData",
+            "type": "bytes"
+          },
+          {
+            "internalType": "bytes",
+            "name": "triggerConfig",
+            "type": "bytes"
+          },
+          {
+            "internalType": "bytes",
+            "name": "offchainConfig",
+            "type": "bytes"
+          },
+          {
+            "internalType": "uint96",
+            "name": "amount",
+            "type": "uint96"
+          }
+        ],
+        "internalType": "struct RegistrationParams",
+        "name": "params",
+        "type": "tuple"
+      }
+    ],
+    "name": "registerAndPredictID",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "requestConfirmations",
+    "outputs": [
+      {
+        "internalType": "uint16",
+        "name": "",
+        "type": "uint16"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "selectedAddresses",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bool",
+        "name": "_isLauched",
+        "type": "bool"
+      }
+    ],
+    "name": "setLaunchedOnDex",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "symbol",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "totalSupply",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "value",
+        "type": "uint256"
+      }
+    ],
+    "name": "transfer",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "from",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "value",
+        "type": "uint256"
+      }
+    ],
+    "name": "transferFrom",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]
+
 
 async function getBalance(address) {
   // console.log("addr : ", address)
@@ -62,6 +789,8 @@ describe("Lock", function () {
 
     console.log(bondingCurve.target)
 
+
+
     const router = new ethers.Contract("0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D", routerABI, owner)
 
     return { bondingCurve, owner, feeReciver, router, otherAccount };
@@ -71,6 +800,7 @@ describe("Lock", function () {
   describe("Deployment", function () {
     it("buy and sell", async function () {
       const weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+      const linkAddr = "0x514910771AF9Ca656af840dff83E8264EcF986CA";
       const { bondingCurve, owner, router, feeReciver, otherAccount } = await loadFixture(deployOneYearLockFixture);
 
 
@@ -93,7 +823,8 @@ describe("Lock", function () {
 
       // see tokens
       // console.log("selling tokens....")
-      // const token = new ethers.Contract(tokenAddr, tokenAbi, owner)
+      const token = new ethers.Contract(tokenAddr, tokenAbi, owner)
+
       // tx = await token.approve(bondingCurve.target, "100000000000000000000");
       // await tx.wait()
 
@@ -131,7 +862,6 @@ describe("Lock", function () {
 
       ////////// //////////////////////////////////////////////////////////
       // // estimate amount
-      const token = new ethers.Contract(tokenAddr, tokenAbi, owner)
 
       console.log("bying tokens from... :", otherAccount.address)
       ethAmount = ethers.parseUnits("0.1", "ether"); // 0.1 ETH
@@ -148,114 +878,81 @@ describe("Lock", function () {
 
       console.log("puchacing token on uniswap completed!");
 
-      console.log("Selling tokens.... from : ", otherAccount.address)
-      tx = await token.connect(otherAccount).approve(router, ethers.parseEther("10000"))
+      // console.log("Selling tokens.... from : ", otherAccount.address)
+      // tx = await token.connect(otherAccount).approve(router, ethers.parseEther("10000"))
+      // await tx.wait()
+
+      // await router.connect(otherAccount).swapExactTokensForETHSupportingFeeOnTransferTokens(
+      //   "100000000",
+      //   0, // Minimum amount of tokens to receive
+      //   [tokenAddr, weth],          // Swap path
+      //   otherAccount.address,           // Recipient address
+      //   Math.floor(Date.now() / 1000) + 60 * 20, // Deadline (20 minutes)
+      // );
+      // console.log("completed!");
+
+      // imporsnate link address to send to the contract 
+      const impersonatedAddress = "0xC06f25517E906b7F9B4deC3C7889503Bb00b3370"; // get it from -> https://etherscan.io/token/0x514910771AF9Ca656af840dff83E8264EcF986CA#balances
+
+      await hre.network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [impersonatedAddress],
+      });
+      console.log(`Impersonating account: ${impersonatedAddress}`);
+
+      const impersonatedSigner = await ethers.getSigner(impersonatedAddress);
+      // link token 
+
+      const linkToken = new ethers.Contract(linkAddr, tokenAbi, owner)
+      // send link token to token contract
+      tx = await linkToken.connect(impersonatedSigner).transfer(tokenAddr, ethers.parseEther("11"))
       await tx.wait()
 
-      await router.connect(otherAccount).swapExactTokensForETHSupportingFeeOnTransferTokens(
-        "100000000",
-        0, // Minimum amount of tokens to receive
-        [tokenAddr, weth],          // Swap path
-        otherAccount.address,           // Recipient address
-        Math.floor(Date.now() / 1000) + 60 * 20, // Deadline (20 minutes)
-      );
-      console.log("completed!");
+      // link token balance of token contract
+
+      const linkBlanceOftokenContract = await linkToken.balanceOf(tokenAddr);
+      console.log("link balance of token : ", linkBlanceOftokenContract.toString(), tokenAddr)
+
+      // call registerAndPredictID to setup upkeep automatlcy
+      const _token = new ethers.Contract(tokenAddr, upkeepTokenAbi, owner)
+
+      const registrationParams = {
+        name: "test upkeep", // string
+        encryptedEmail: "0x", // bytes
+        upkeepContract: token.target, // address of token contract
+        gasLimit: 500000, // uint32
+        adminAddress: owner.address, // address msg.send addrses
+        triggerType: 0, // uint8
+        checkData: "0x", // bytes
+        triggerConfig: "0x", // bytes
+        offchainConfig: "0x", // bytes
+        amount: ethers.parseEther("11"), // uint96
+      };
+      tx = await _token.registerAndPredictID(registrationParams);
+      await tx.wait()
+
+
+      // Increase the time by 2 seconds
+      await network.provider.send("evm_increaseTime", [2]);
+      await network.provider.send("evm_mine");
+
+      // static call to check up
+      tx = await linkToken.connect(impersonatedSigner).transfer(tokenAddr, ethers.parseEther("11"))
+      await tx.wait()
+
+      tx = await _token.performUpkeep("0x");
+      await tx.wait()
+
+      
+
+
 
 
     });
 
-    // in sell to address -> pair addrss
-    // in buy to address -> reciver
 
-    // it("Should set the right owner", async function () {
-    //   const { lock, owner } = await loadFixture(deployOneYearLockFixture);
 
-    //   expect(await lock.owner()).to.equal(owner.address);
-    // });
-
-    // it("Should receive and store the funds to lock", async function () {
-    //   const { lock, lockedAmount } = await loadFixture(
-    //     deployOneYearLockFixture
-    //   );
-
-    //   expect(await ethers.provider.getBalance(lock.target)).to.equal(
-    //     lockedAmount
-    //   );
-    // });
-
-    // it("Should fail if the unlockTime is not in the future", async function () {
-    //   // We don't use the fixture here because we want a different deployment
-    //   const latestTime = await time.latest();
-    //   const Lock = await ethers.getContractFactory("Lock");
-    //   await expect(Lock.deploy(latestTime, { value: 1 })).to.be.revertedWith(
-    //     "Unlock time should be in the future"
-    //   );
-    // });
   });
 
-  // describe("Withdrawals", function () {
-  //   describe("Validations", function () {2
-  //     it("Should revert with the right error if called too soon", async function () {
-  //       const { lock } = await loadFixture(deployOneYearLockFixture);
 
-  //       await expect(lock.withdraw()).to.be.revertedWith(
-  //         "You can't withdraw yet"
-  //       );
-  //     });
-
-  //     it("Should revert with the right error if called from another account", async function () {
-  //       const { lock, unlockTime, otherAccount } = await loadFixture(
-  //         deployOneYearLockFixture
-  //       );
-
-  //       // We can increase the time in Hardhat Network
-  //       await time.increaseTo(unlockTime);
-
-  //       // We use lock.connect() to send a transaction from another account
-  //       await expect(lock.connect(otherAccount).withdraw()).to.be.revertedWith(
-  //         "You aren't the owner"
-  //       );
-  //     });
-
-  //     it("Shouldn't fail if the unlockTime has arrived and the owner calls it", async function () {
-  //       const { lock, unlockTime } = await loadFixture(
-  //         deployOneYearLockFixture
-  //       );
-
-  //       // Transactions are sent using the first signer by default
-  //       await time.increaseTo(unlockTime);
-
-  //       await expect(lock.withdraw()).not.to.be.reverted;
-  //     });
-  //   });
-
-  //   describe("Events", function () {
-  //     it("Should emit an event on withdrawals", async function () {
-  //       const { lock, unlockTime, lockedAmount } = await loadFixture(
-  //         deployOneYearLockFixture
-  //       );
-
-  //       await time.increaseTo(unlockTime);
-
-  //       await expect(lock.withdraw())
-  //         .to.emit(lock, "Withdrawal")
-  //         .withArgs(lockedAmount, anyValue); // We accept any value as `when` arg
-  //     });
-  //   });
-
-  //   describe("Transfers", function () {
-  //     it("Should transfer the funds to the owner", async function () {
-  //       const { lock, unlockTime, lockedAmount, owner } = await loadFixture(
-  //         deployOneYearLockFixture
-  //       );
-
-  //       await time.increaseTo(unlockTime);
-
-  //       await expect(lock.withdraw()).to.changeEtherBalances(
-  //         [owner, lock],
-  //         [lockedAmount, -lockedAmount]
-  //       );
-  //     });
-  //   });
-  // });
 });
