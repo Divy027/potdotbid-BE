@@ -1,4 +1,5 @@
 require("@nomicfoundation/hardhat-toolbox");
+require("dotenv").config();
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -41,6 +42,12 @@ module.exports = {
       forking: {
         url: 'https://eth-mainnet.g.alchemy.com/v2/xkMkq3diOiuGpkCz7bSuJKEj95i4eh4B',
       },
+      
+    },
+    baseSepolia: {
+      url: `https://sepolia.base.org`, // Base Sepolia network RPC URL
+      accounts: [`0x${process.env.PRIVATE_KEY}`], // Private key from environment variable
+      chainId: 84532, // Base Sepolia's chain ID
     },
   },
 };

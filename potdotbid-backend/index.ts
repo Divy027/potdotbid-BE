@@ -20,7 +20,7 @@ connectMongoDB();
 
 // Create an instance of the Express application
 const app = express();
-const whitelist = ["http://localhost:5173", "https://lmao-fun-beta-version.vercel.app"];
+const whitelist = ["http://localhost:3000", "https://lmao-fun-beta-version.vercel.app"];
 const corsOptions = {
   origin: function (origin: any, callback: any) {
     if (whitelist.indexOf(origin) !== -1 || !origin) {

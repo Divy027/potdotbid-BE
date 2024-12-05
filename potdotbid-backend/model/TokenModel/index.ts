@@ -56,6 +56,10 @@ const TokenSchema = new mongoose.Schema({
   owner: {
     type: String,
   },
+  status: {
+    type: String,
+    default: "bidding"
+  }
 
 });
 

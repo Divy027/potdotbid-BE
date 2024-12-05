@@ -14,47 +14,70 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const UserModel_1 = __importDefault(require("../model/UserModel"));
 const middleware_1 = require("../middleware");
+const ethers_1 = require("ethers");
+const UserModel_1 = __importDefault(require("../model/UserModel"));
 const config_1 = require("../config");
-const UserModel_2 = __importDefault(require("../model/UserModel"));
-// Create a new instance of the Express Router
+const nonces = {}; // Store nonces for wallet addresses temporarily
 const UserRouter = (0, express_1.Router)();
 // @route    POST api/users/register
-// @desc     Register user
+// @desc     Register user with wallet address verification
 // @access   Public
 UserRouter.post("/register", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { walletAddress } = req.body;
+    const { walletAddress, signature, nonce } = req.body;
+    if (!walletAddress || !signature || !nonce) {
+        return res.status(400).json({ msg: "Wallet address, signature, and nonce are required" });
+    }
     try {
-        if (!walletAddress || walletAddress === "")
-            return res.status(500).json({ msg: "Please provide a wallet address" });
-        const user = yield UserModel_1.default.findOne({ walletAddress: walletAddress });
+        // Check if nonce is valid
+        if (nonces[walletAddress] !== nonce) {
+            return res.status(400).json({ msg: "Invalid or expired nonce" });
+        }
+        // Verify the signature using ethers.js
+        const recoveredAddress = ethers_1.ethers.utils.verifyMessage(nonce, signature);
+        if (recoveredAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+            return res.status(401).json({ msg: "Signature verification failed" });
+        }
+        // If the signature is valid, check if the user already exists
+        const user = yield UserModel_1.default.findOne({ walletAddress });
         if (user) {
             const payload = {
                 walletAddress: user.walletAddress,
                 id: user._id
             };
             const token = jsonwebtoken_1.default.sign(payload, config_1.JWT_SECRET);
-            res.json({ token: token, user: user });
+            return res.json({ token, user });
         }
         else {
-            const newUser = new UserModel_2.default({
-                walletAddress: walletAddress
-            });
-            const newuser = yield newUser.save();
+            // If the user doesn't exist, create a new one
+            const newUser = new UserModel_1.default({ walletAddress });
+            const savedUser = yield newUser.save();
             const payload = {
-                username: newuser.username,
-                walletAddress: newuser.walletAddress,
-                id: newuser._id
+                walletAddress: savedUser.walletAddress,
+                id: savedUser._id
             };
             const token = jsonwebtoken_1.default.sign(payload, config_1.JWT_SECRET);
-            res.json({ token: token, user: newuser });
+            res.json({ token, user: savedUser });
         }
     }
     catch (error) {
-        console.log("registering error => ", error);
+        console.error("Registering error =>", error);
         res.status(500).json({ err: error });
     }
+}));
+// @route    POST api/users/nonce
+// @desc     Generate a nonce for wallet address
+// @access   Public
+UserRouter.post("/nonce", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { walletAddress } = req.body;
+    if (!walletAddress) {
+        return res.status(400).json({ msg: "Wallet address is required" });
+    }
+    // Generate a random nonce
+    const nonce = `Sign this message to verify your wallet: ${Math.random()}`;
+    nonces[walletAddress] = nonce;
+    // Send the nonce to the client
+    res.status(200).json({ nonce });
 }));
 // @route    POST api/users/update
 // @desc     Update user info
@@ -65,10 +88,10 @@ UserRouter.post("/update", middleware_1.authMiddleware, (req, res) => __awaiter(
     console.log('user info => ', req.user);
     const { username } = req.body;
     try {
-        const user = yield UserModel_2.default.findById(id);
+        const user = yield UserModel_1.default.findById(id);
         if (!user)
             return res.status(500).json({ err: "This user does not exist!" });
-        const updateUser = yield UserModel_2.default.findByIdAndUpdate(id, { username: username }, { new: true });
+        const updateUser = yield UserModel_1.default.findByIdAndUpdate(id, { username: username }, { new: true });
         res.json({ user: updateUser });
     }
     catch (error) {

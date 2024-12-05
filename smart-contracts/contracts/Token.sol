@@ -188,7 +188,7 @@ contract Token is
         returns (bool upkeepNeeded, bytes memory /* performData */)
     {
         console.log("hi");
-        upkeepNeeded = (block.timestamp >=
+        upkeepNeeded = (isLaunchedOnDex && block.timestamp >=
             lastSelectionTime + DAILY_SELECTION_INTERVAL);
     }
 

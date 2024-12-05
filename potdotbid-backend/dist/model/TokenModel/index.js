@@ -59,6 +59,10 @@ const TokenSchema = new mongoose_1.default.Schema({
     owner: {
         type: String,
     },
+    status: {
+        type: String,
+        default: "bidding"
+    }
 });
 const TokenModel = mongoose_1.default.model("token", TokenSchema);
 exports.default = TokenModel;

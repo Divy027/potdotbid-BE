@@ -1,3 +1,4 @@
+
 import { Request, Response, Router } from "express";
 import { authMiddleware, AuthRequest } from "../middleware";
 import UserModel from "../model/UserModel";
@@ -5,6 +6,7 @@ import TokenModel from "../model/TokenModel";
 import TransactionModel from "../model/TransactionModel";
 import TradeModel from "../model/TradeModel";
 import { getCurrentFormattedDateTime } from "./tradeRoute";
+import { sign } from "jsonwebtoken";
 
 
 // Create a new instance of the Express Router
@@ -13,7 +15,7 @@ const TokenRouter = Router();
 // @route    POST api/tokens/create
 // @desc     Token Creation
 // @access   Public
-TokenRouter.post("/create", authMiddleware, async (req: Request, res: Response) => {
+TokenRouter.post("/create", authMiddleware,async (req: Request, res: Response) => {
   const {
     name,
     address,
@@ -28,7 +30,16 @@ TokenRouter.post("/create", authMiddleware, async (req: Request, res: Response) 
     boughtAmount, // Amount of the created token bought by the owner
   } = req.body;
 
+  console.log(req.body)
+
   const owner = (req as AuthRequest).user.walletAddress;
+
+  console.log(name)
+  console.log(req.body)
+  console.log(address)
+  console.log(symbol)
+  console.log(owner)
+  console.log(signature)
 
   try {
     // Validate required fields
@@ -349,7 +360,10 @@ TokenRouter.get('/getAll', async (req: Request, res: Response) => {
         tokenName: tokens[i].name,
         price: tokens[i].price,
         buyVolume: tokens[i].buyvolume?tokens[i].buyvolume:0,
-        sellVolume: tokens[i].sellvolume?tokens[i].sellvolume:0
+        sellVolume: tokens[i].sellvolume?tokens[i].sellvolume:0,
+        status: tokens[i].status,
+        social: tokens[i].social,
+        description: tokens[i].description
       }
       resTokens.push(newData);
     }

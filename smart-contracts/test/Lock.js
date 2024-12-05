@@ -781,17 +781,16 @@ describe("Lock", function () {
     const maxPurchaseAmount = ethers.parseEther("20");
     const BondingCurve = await ethers.getContractFactory("BondingCurve");
     const bondingCurve = await BondingCurve.deploy(
-      feeReciver.address,
-      "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f",
-      "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
-      maxPurchaseAmount
+      owner.address,
+      "0x7Ae58f10f7849cA6F5fB71b7f45CB416c9204b1e",
+      "0x1689E7B1F10000AE47eBfE339a4f69dECd19F602",
     );
 
     console.log(bondingCurve.target)
 
 
 
-    const router = new ethers.Contract("0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D", routerABI, owner)
+    const router = new ethers.Contract("0x1689E7B1F10000AE47eBfE339a4f69dECd19F602", routerABI, owner)
 
     return { bondingCurve, owner, feeReciver, router, otherAccount };
   }

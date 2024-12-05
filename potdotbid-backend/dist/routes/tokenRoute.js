@@ -29,7 +29,14 @@ TokenRouter.post("/create", middleware_1.authMiddleware, (req, res) => __awaiter
     social, // Social links (e.g., Telegram and X)
     boughtAmount, // Amount of the created token bought by the owner
      } = req.body;
+    console.log(req.body);
     const owner = req.user.walletAddress;
+    console.log(name);
+    console.log(req.body);
+    console.log(address);
+    console.log(symbol);
+    console.log(owner);
+    console.log(signature);
     try {
         // Validate required fields
         if (!name || !address || !symbol || !owner || !signature) {
@@ -285,7 +292,10 @@ TokenRouter.get('/getAll', (req, res) => __awaiter(void 0, void 0, void 0, funct
                 tokenName: tokens[i].name,
                 price: tokens[i].price,
                 buyVolume: tokens[i].buyvolume ? tokens[i].buyvolume : 0,
-                sellVolume: tokens[i].sellvolume ? tokens[i].sellvolume : 0
+                sellVolume: tokens[i].sellvolume ? tokens[i].sellvolume : 0,
+                status: tokens[i].status,
+                social: tokens[i].social,
+                description: tokens[i].description
             };
             resTokens.push(newData);
         }

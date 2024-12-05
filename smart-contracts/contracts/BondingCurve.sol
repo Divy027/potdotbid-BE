@@ -65,7 +65,6 @@ contract BondingCurve {
         address(0x0000000000000000000000000000000000000000);
     address public implementation;
     address public launcher;
-    uint256 public maxPurchaseAmount;
     address public pendingImplementation;
     address public pendingOwner;
     address public vault;
@@ -98,11 +97,9 @@ contract BondingCurve {
     constructor(
         address _vault,
         address _factory,
-        address _router,
-        uint256 _maxPurchaseAmount
+        address _router
     ) {
         vault = _vault;
-        maxPurchaseAmount = _maxPurchaseAmount;
         factory = _factory;
         router = _router;
         owner = msg.sender;
@@ -400,10 +397,7 @@ contract BondingCurve {
             !virtualPools[token].launched,
             "BondingCurve: Token already launched"
         );
-        require(
-            msg.value <= maxPurchaseAmount,
-            "BondingCurve: Exceeds max purchase amount"
-        );
+        
         // this is redundant but I added it just for brevity
 
         require(

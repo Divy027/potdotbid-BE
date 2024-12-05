@@ -1,52 +1,82 @@
 import { Request, Response, Router } from "express";
-import jwt, { sign } from "jsonwebtoken";
-
+import jwt from "jsonwebtoken";
 import User from "../model/UserModel";
 import { authMiddleware, AuthRequest } from "../middleware";
-import { JWT_SECRET } from "../config";
+import { ethers } from "ethers";
 import UserModel from "../model/UserModel";
+import { JWT_SECRET } from "../config";
 
+const nonces: Record<string, string> = {}; // Store nonces for wallet addresses temporarily
 
-
-// Create a new instance of the Express Router
 const UserRouter = Router();
 
 // @route    POST api/users/register
-// @desc     Register user
+// @desc     Register user with wallet address verification
 // @access   Public
 UserRouter.post("/register", async (req: Request, res: Response) => {
-  const { walletAddress } = req.body;
+  const { walletAddress, signature, nonce } = req.body;
+
+  if (!walletAddress || !signature || !nonce) {
+    return res.status(400).json({ msg: "Wallet address, signature, and nonce are required" });
+  }
+
   try {
-    if(!walletAddress || walletAddress === "") return res.status(500).json({msg: "Please provide a wallet address"});
-    const user = await User.findOne({walletAddress: walletAddress});
+    // Check if nonce is valid
+    if (nonces[walletAddress] !== nonce) {
+      return res.status(400).json({ msg: "Invalid or expired nonce" });
+    }
+
+    // Verify the signature using ethers.js
+    const recoveredAddress = ethers.utils.verifyMessage(nonce, signature);
+    if (recoveredAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+      return res.status(401).json({ msg: "Signature verification failed" });
+    }
+
+    // If the signature is valid, check if the user already exists
+    const user = await UserModel.findOne({ walletAddress });
     if (user) {
       const payload = {
         walletAddress: user.walletAddress,
         id: user._id
       }
       const token = jwt.sign(payload, JWT_SECRET);
-      res.json({token: token, user: user});
+      return res.json({ token, user });
     } else {
-      const newUser = new UserModel({
-        walletAddress: walletAddress
-      });
-      
-      const newuser = await newUser.save();
+      // If the user doesn't exist, create a new one
+      const newUser = new UserModel({ walletAddress });
+      const savedUser = await newUser.save();
+
       const payload = {
-        username: newuser.username,
-        walletAddress: newuser.walletAddress,
-        id: newuser._id
-      }
+        walletAddress: savedUser.walletAddress,
+        id: savedUser._id
+      };
       const token = jwt.sign(payload, JWT_SECRET);
-  
-      res.json({token: token, user: newuser})
+
+      res.json({ token, user: savedUser });
     }
   } catch (error) {
-    console.log("registering error => ", error);
-    res.status(500).json({err: error})
+    console.error("Registering error =>", error);
+    res.status(500).json({ err: error });
   }
 });
 
+// @route    POST api/users/nonce
+// @desc     Generate a nonce for wallet address
+// @access   Public
+UserRouter.post("/nonce", async (req: Request, res: Response) => {
+  const { walletAddress } = req.body;
+
+  if (!walletAddress) {
+    return res.status(400).json({ msg: "Wallet address is required" });
+  }
+
+  // Generate a random nonce
+  const nonce = `Sign this message to verify your wallet: ${Math.random()}`;
+  nonces[walletAddress] = nonce;
+
+  // Send the nonce to the client
+  res.status(200).json({ nonce });
+});
 
 // @route    POST api/users/update
 // @desc     Update user info

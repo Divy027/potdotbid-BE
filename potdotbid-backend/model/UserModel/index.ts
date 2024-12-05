@@ -32,7 +32,7 @@ const UserSchema = new mongoose.Schema({
       ref: 'token'
     }
   ]
-});
+})
 
 
 const UserModel = mongoose.model("user", UserSchema);
