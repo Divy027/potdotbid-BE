@@ -281,15 +281,15 @@ TokenRouter.get('/getAll', (req, res) => __awaiter(void 0, void 0, void 0, funct
             if (sell)
                 sellCount = sell.length;
             const newData = {
-                tokenSymbol: tokens[i].symbol,
-                tokenImage: tokens[i].avatar,
+                symbol: tokens[i].symbol,
+                image: tokens[i].avatar,
                 creator: tokens[i].owner,
                 liquidity: tokens[i].supply / Math.pow(10, 9),
                 marketcap: tokens[i].marketcap / Math.pow(10, 9),
                 txnsBuy: buyCount,
                 txnsSell: sellCount,
-                tokenAddr: tokens[i].address,
-                tokenName: tokens[i].name,
+                address: tokens[i].address,
+                name: tokens[i].name,
                 price: tokens[i].price,
                 buyVolume: tokens[i].buyvolume ? tokens[i].buyvolume : 0,
                 sellVolume: tokens[i].sellvolume ? tokens[i].sellvolume : 0,

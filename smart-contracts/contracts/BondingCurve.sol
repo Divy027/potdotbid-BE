@@ -397,8 +397,6 @@ contract BondingCurve {
             !virtualPools[token].launched,
             "BondingCurve: Token already launched"
         );
-        
-        // this is redundant but I added it just for brevity
 
         require(
             amountMin <= virtualPools[token].TokenReserve,

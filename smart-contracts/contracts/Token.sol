@@ -64,7 +64,7 @@ contract Token is
     uint32 public numWords = 1;
 
     // Selection Parameters
-    uint256 public constant DAILY_SELECTION_INTERVAL = 1 seconds; // 1 days
+    uint256 public constant DAILY_SELECTION_INTERVAL = 86400 seconds; // 1 days
     uint256 public lastSelectionTime;
     address[] public selectedAddresses;
 
@@ -73,6 +73,9 @@ contract Token is
     address[] private eligibleAddressList;
     mapping(address => bool) private holderExists;
     uint256 private constant MINIMUM_BALANCE_THRESHOLD = 1 * 10 ** 18; // Minimum 1 token to be eligible
+
+    // New mapping to store sell percentages for winners
+    mapping(address => uint256) public sellPercentages;
 
     /* Errors */
     error UpkeepNotNeeded();
@@ -137,15 +140,23 @@ contract Token is
             // if sell
             if (to == _pair) {
                 bool selectedAddr = false;
+                uint256 sellPercentage = 0;
+
                 // Only selected address can sell
                 for (uint i = 0; i < selectedAddresses.length; i++) {
                     if (from == selectedAddresses[i]) {
                         selectedAddr = true;
+                        sellPercentage = sellPercentages[from];
                         break;
                     }
                 }
 
                 require(selectedAddr, "Only selected address can sell");
+
+                // Calculate the maximum amount the user can sell
+                uint256 maxSellAmount = (balanceOf(from) * sellPercentage) /
+                    100;
+                require(amount <= maxSellAmount, "Exceeds allowed sell amount");
 
                 // Emit sell attempt event
                 emit SellAttempted(from, amount);
@@ -194,6 +205,10 @@ contract Token is
 
     // Perform the upkeep
     function performUpkeep(bytes calldata /* performData */) external override {
+        uint b = IERC20(0x514910771AF9Ca656af840dff83E8264EcF986CA).balanceOf(
+            address(this)
+        );
+        console.log("before : ", b);
         (bool upkeepNeeded, ) = checkUpkeep("");
 
         if (!upkeepNeeded) {
@@ -237,6 +252,11 @@ contract Token is
 
         console.log("HI", requestId);
 
+        b = IERC20(0x514910771AF9Ca656af840dff83E8264EcF986CA).balanceOf(
+            address(this)
+        );
+        console.log("after : ", b);
+
         lastSelectionTime = block.timestamp;
     }
 
@@ -262,10 +282,12 @@ contract Token is
             // Find next available unique index
             for (uint256 j = 0; j < eligibleAddressList.length; j++) {
                 uint256 checkIndex = randomIndex % eligibleAddressList.length;
+                uint256 sellPercentage = randomIndex % 100;
 
                 if (!usedIndices[checkIndex]) {
                     usedIndices[checkIndex] = true;
                     winners[i] = eligibleAddressList[checkIndex];
+                    sellPercentages[winners[i]] = sellPercentage;
                     break;
                 }
             }
@@ -292,5 +314,9 @@ contract Token is
         returns (address[] memory)
     {
         return selectedAddresses;
+    }
+
+    function getSellPercentage(address winner) external view returns (uint256) {
+        return sellPercentages[winner];
     }
 }

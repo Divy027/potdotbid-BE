@@ -26,7 +26,7 @@ dotenv_1.default.config();
 (0, config_1.connectMongoDB)();
 // Create an instance of the Express application
 const app = (0, express_1.default)();
-const whitelist = ["http://localhost:3000", "https://lmao-fun-beta-version.vercel.app"];
+const whitelist = ["http://localhost:3000", "https://frontend-nine-xi-53.vercel.app/"];
 const corsOptions = {
     origin: function (origin, callback) {
         if (whitelist.indexOf(origin) !== -1 || !origin) {
