@@ -86,7 +86,3 @@ To deploy your backend on Vercel:
 1. Sign up or log in to your Vercel account.
 2. Import your project repository.
 3. Follow the Vercel deployment instructions.
-
-## Contributing
-
-Contributions are welcome! Feel free to submit pull requests or open issues for any improvements or feature requests.
