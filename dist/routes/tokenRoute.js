@@ -17,7 +17,6 @@ const middleware_1 = require("../middleware");
 const UserModel_1 = __importDefault(require("../model/UserModel"));
 const TokenModel_1 = __importDefault(require("../model/TokenModel"));
 const TransactionModel_1 = __importDefault(require("../model/TransactionModel"));
-const TradeModel_1 = __importDefault(require("../model/TradeModel"));
 const tradeRoute_1 = require("./tradeRoute");
 // Create a new instance of the Express Router
 const TokenRouter = (0, express_1.Router)();
@@ -28,7 +27,7 @@ TokenRouter.post("/create", middleware_1.authMiddleware, (req, res) => __awaiter
     const { name, address, symbol, avatar, description, supply, marketcap, price, signature, // EVM tx hash
     social, // Social links (e.g., Telegram and X)
     boughtAmount, // Amount of the created token bought by the owner
-     } = req.body;
+    ethAmount, } = req.body;
     console.log(req.body);
     const owner = req.user.walletAddress;
     console.log(name);
@@ -73,7 +72,7 @@ TokenRouter.post("/create", middleware_1.authMiddleware, (req, res) => __awaiter
             symbol,
             avatar: avatar || "https://arweave.net/iap6ASZe2-Aw3tUFiuiCBS7DWtt0tlK2GNmn9ZVwXX8",
             description,
-            supply: supply || Math.pow(10, 9),
+            supply: supply || 1e9,
             marketcap: marketcap || 0,
             price: price || 0,
             owner,
@@ -101,6 +100,7 @@ TokenRouter.post("/create", middleware_1.authMiddleware, (req, res) => __awaiter
                 user: owner,
                 signature,
                 amount: boughtAmount || 0,
+                ethAmount: ethAmount || 0
             });
             yield newTransaction.save();
             yield TokenModel_1.default.findOneAndUpdate({ address }, { $inc: { buyvolume: boughtAmount } });
@@ -122,11 +122,11 @@ TokenRouter.post("/create", middleware_1.authMiddleware, (req, res) => __awaiter
 // @desc    Token Buy
 // @access  Public
 TokenRouter.post("/buy", middleware_1.authMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { token, amount, signature } = req.body;
+    const { token, amount, signature, ethAmount } = req.body;
     const buyer = req.user.walletAddress;
     try {
         // Validate the input parameters
-        if (!buyer || !token || !amount || !signature) {
+        if (!buyer || !token || !amount || !signature || !ethAmount) {
             return res.status(400).json({
                 success: false,
                 err: "Please provide buyer, token, amount, and signature!",
@@ -173,6 +173,7 @@ TokenRouter.post("/buy", middleware_1.authMiddleware, (req, res) => __awaiter(vo
             user: buyer,
             signature,
             amount,
+            ethAmount
         });
         yield newTransaction.save();
         res.json({
@@ -191,11 +192,11 @@ TokenRouter.post("/buy", middleware_1.authMiddleware, (req, res) => __awaiter(vo
 // @access  Public
 TokenRouter.post("/sell", middleware_1.authMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-    const { token, amount, signature } = req.body;
+    const { token, amount, signature, ethAmount } = req.body;
     const seller = req.user.walletAddress;
     try {
         // Validate input
-        if (!seller || !token || !amount || !signature) {
+        if (!seller || !token || !amount || !signature || !ethAmount) {
             return res
                 .status(400)
                 .json({ success: false, err: "Please provide seller, token, amount, and signature!" });
@@ -250,6 +251,7 @@ TokenRouter.post("/sell", middleware_1.authMiddleware, (req, res) => __awaiter(v
             user: seller,
             signature,
             amount,
+            ethAmount
         });
         yield newTransaction.save();
         res.json({
@@ -376,11 +378,6 @@ TokenRouter.get('/:tokenId', (req, res) => __awaiter(void 0, void 0, void 0, fun
     const token = yield TokenModel_1.default.findOne({ address: tokenId });
     if (!token)
         return res.status(500).json({ success: false, err: "This token does not exist!" });
-    const tradeHis = yield TradeModel_1.default.find({ token: tokenId });
-    if (tradeHis.length === 0)
-        return res.status(500).json({ success: false, err: "This token has no data!" });
-    //@ts-ignore
-    const newArr = processIntervals(tradeHis);
-    res.json({ trades: newArr, token });
+    res.json({ token });
 }));
 exports.default = TokenRouter;

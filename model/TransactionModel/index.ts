@@ -21,6 +21,9 @@ const TransactionSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  ethAmount: {
+    type: Number,
+  },
   timestamp: {
     type: Date,
     default: Date.now

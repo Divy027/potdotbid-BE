@@ -20,13 +20,14 @@ const config_1 = require("./config");
 const http_1 = __importDefault(require("http"));
 const userRoute_1 = __importDefault(require("./routes/userRoute"));
 const tokenRoute_1 = __importDefault(require("./routes/tokenRoute"));
+const transactionRoute_1 = __importDefault(require("./routes/transactionRoute"));
 // Load environment variables from .env file
 dotenv_1.default.config();
 // Connect to the MongoDB database
 (0, config_1.connectMongoDB)();
 // Create an instance of the Express application
 const app = (0, express_1.default)();
-const whitelist = ["http://localhost:3000", "https://frontend-nine-xi-53.vercel.app/"];
+const whitelist = ["http://localhost:3000", "https://www.pot.bid/"];
 const corsOptions = {
     origin: function (origin, callback) {
         if (whitelist.indexOf(origin) !== -1 || !origin) {
@@ -50,6 +51,7 @@ const server = http_1.default.createServer(app);
 // Define routes for different API endpoints
 app.use("/api/users", userRoute_1.default);
 app.use("/api/tokens", tokenRoute_1.default);
+app.use("/api/transaction", transactionRoute_1.default);
 // Define a route to check if the backend server is running
 app.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     res.send("Backend Server is Running now!");

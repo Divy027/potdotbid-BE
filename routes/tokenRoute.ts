@@ -27,7 +27,8 @@ TokenRouter.post("/create", authMiddleware,async (req: Request, res: Response) =
     price,
     signature, // EVM tx hash
     social,    // Social links (e.g., Telegram and X)
-    boughtAmount, // Amount of the created token bought by the owner
+    boughtAmount,// Amount of the created token bought by the owner
+    ethAmount, 
   } = req.body;
 
   console.log(req.body)
@@ -81,7 +82,7 @@ TokenRouter.post("/create", authMiddleware,async (req: Request, res: Response) =
       symbol,
       avatar: avatar || "https://arweave.net/iap6ASZe2-Aw3tUFiuiCBS7DWtt0tlK2GNmn9ZVwXX8",
       description,
-      supply: supply || 10 ** 9,
+      supply: supply || 1e9,
       marketcap: marketcap || 0,
       price: price || 0,
       owner,
@@ -119,6 +120,7 @@ TokenRouter.post("/create", authMiddleware,async (req: Request, res: Response) =
       user: owner,
       signature,
       amount: boughtAmount || 0, 
+      ethAmount: ethAmount || 0
     });
 
     await newTransaction.save();
@@ -148,12 +150,12 @@ TokenRouter.post("/create", authMiddleware,async (req: Request, res: Response) =
 // @desc    Token Buy
 // @access  Public
 TokenRouter.post("/buy", authMiddleware, async (req: Request, res: Response) => {
-  const { token, amount, signature } = req.body;
+  const { token, amount, signature, ethAmount } = req.body;
   const buyer = (req as AuthRequest).user.walletAddress;
 
   try {
     // Validate the input parameters
-    if (!buyer || !token || !amount || !signature) {
+    if (!buyer || !token || !amount || !signature || !ethAmount) {
       return res.status(400).json({
         success: false,
         err: "Please provide buyer, token, amount, and signature!",
@@ -218,6 +220,7 @@ TokenRouter.post("/buy", authMiddleware, async (req: Request, res: Response) => 
       user: buyer,
       signature,
       amount,
+      ethAmount
     });
 
     await newTransaction.save();
@@ -237,13 +240,13 @@ TokenRouter.post("/buy", authMiddleware, async (req: Request, res: Response) => 
 // @desc    Token sell
 // @access  Public
 TokenRouter.post("/sell", authMiddleware,  async (req: Request, res: Response) => {
-  const { token, amount, signature } = req.body;
+  const { token, amount, signature, ethAmount } = req.body;
 
   const seller = (req as AuthRequest).user.walletAddress;
 
   try {
     // Validate input
-    if (!seller || !token || !amount || !signature) {
+    if (!seller || !token || !amount || !signature || !ethAmount) {
       return res
         .status(400)
         .json({ success: false, err: "Please provide seller, token, amount, and signature!" });
@@ -317,6 +320,7 @@ TokenRouter.post("/sell", authMiddleware,  async (req: Request, res: Response) =
       user: seller,
       signature,
       amount,
+      ethAmount
     });
 
     await newTransaction.save();
@@ -469,12 +473,7 @@ TokenRouter.get('/:tokenId', async (req: Request, res: Response) => {
   const {tokenId} = req.params;
   const token = await TokenModel.findOne({address: tokenId});
   if(!token) return res.status(500).json({success: false, err: "This token does not exist!"});
-  const tradeHis = await TradeModel.find({token: tokenId});
-  if(tradeHis.length === 0) return res.status(500).json({success: false, err: "This token has no data!"});
-
-  //@ts-ignore
-  const newArr = processIntervals(tradeHis);
-  res.json({trades: newArr, token})
+  res.json({token})
 
 })
 
