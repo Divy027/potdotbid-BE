@@ -52,6 +52,7 @@ TokenRouter.post("/create", middleware_1.authMiddleware, (req, res) => __awaiter
                 err: "This transaction hash is already used!",
             });
         }
+        ;
         // Check if the owner exists in the user database
         const isOwner = yield UserModel_1.default.findOne({ walletAddress: owner });
         if (!isOwner) {
@@ -90,7 +91,8 @@ TokenRouter.post("/create", middleware_1.authMiddleware, (req, res) => __awaiter
             token: address,
             user: owner,
             signature,
-            amount: supply || 0,
+            amount: supply || 1e9,
+            ethAmount: 0
         });
         yield newTransaction.save();
         if (boughtAmount > 0) {
