@@ -21,18 +21,21 @@ connectMongoDB();
 
 // Create an instance of the Express application
 const app = express();
-const whitelist = ["http://localhost:3000", "https://www.pot.bid"];
-const corsOptions = {
-  origin: function (origin: any, callback: any) {
-    if (whitelist.indexOf(origin) !== -1 || !origin) {
-      callback(null, true);
-  } else {
-   callback(new Error('Not allowed by CORS'));
-  }
- },
-};
-// Set up Cross-Origin Resource Sharing (CORS) options
-app.use(cors(corsOptions));
+// const whitelist = ["http://localhost:3000", "https://www.pot.bid"];
+// const corsOptions = {
+//   origin: function (origin: any, callback: any) {
+//     if (whitelist.indexOf(origin) !== -1 || !origin) {
+//       callback(null, true);
+//   } else {
+//    callback(new Error('Not allowed by CORS'));
+//   }
+//  },
+// };
+// // Set up Cross-Origin Resource Sharing (CORS) options
+// app.use(cors(corsOptions));
+
+
+app.use(cors());
 
 // Serve static files from the 'public' folder
 
