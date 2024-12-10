@@ -58,7 +58,7 @@ TokenRouter.post("/create", authMiddleware,async (req: Request, res: Response) =
         success: false,
         err: "This transaction hash is already used!",
       });
-    }
+    };
 
     // Check if the owner exists in the user database
     const isOwner = await UserModel.findOne({ walletAddress: owner });
@@ -107,7 +107,8 @@ TokenRouter.post("/create", authMiddleware,async (req: Request, res: Response) =
       token: address,
       user: owner,
       signature,
-      amount: supply || 0,
+      amount: supply || 1e9,
+      ethAmount: 0
     });
 
     await newTransaction.save();
