@@ -23,9 +23,9 @@ connectMongoDB();
 const app = express();
 const whitelist = ["http://localhost:3000", "https://www.pot.bid"];
 const corsOptions = {
-  origin: '*', // Allow all origins or restrict to your frontend
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  origin: '*', // Allow all origins or restrict to your frontend domain
+  methods: ['GET', 'POST', 'OPTIONS'], // Allow these HTTP methods
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token'], // Include 'x-auth-token'
   credentials: false, // Set to true if cookies are required
 };
 
