@@ -11,6 +11,7 @@ import TokenRouter from "./routes/tokenRoute";
 import cron from 'node-cron';
 import { updatePermins } from "./routes/tradeRoute";
 import TransactionRouter from "./routes/transactionRoute";
+import { listenEvent } from "./contracts";
 
 
 // Load environment variables from .env file
@@ -47,6 +48,8 @@ const server = http.createServer(app);
 app.use("/api/users", UserRouter);
 app.use("/api/tokens", TokenRouter);
 app.use("/api/transaction",TransactionRouter);
+
+listenEvent()
 
 // Define a route to check if the backend server is running
 app.get("/", async (req: any, res: any) => {

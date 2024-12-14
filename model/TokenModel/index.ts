@@ -59,9 +59,12 @@ const TokenSchema = new mongoose.Schema({
   status: {
     type: String,
     default: "bidding"
+  },
+  countdown : {
+    type: String,
   }
 
-});
+})
 
 const TokenModel: any = mongoose.model("token", TokenSchema);
 
