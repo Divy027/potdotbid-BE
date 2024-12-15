@@ -14,8 +14,6 @@ export async function listenEvent() {
 
     console.log("Listening for TokenLaunched events...");
 
-    // await registerUpkeep("0xB56c478071b1663ED2c201cBAE0fc08Dbbe8d24e")
-
     // Listen for the TokenLaunched event
     contract.on("TokenLaunched", async (token) => {
       console.log(`Token launched: ${token}`);
@@ -57,17 +55,18 @@ async function registerUpkeep(tokenAddress: string) {
   const _token = new ethers.Contract(tokenAddress, TokenABI, signer)
 
   const registrationParams = {
-      name: "test upkeep", // string
+      name: "potdotbid upkeep", // string
       encryptedEmail: "0x", // bytes
       upkeepContract: tokenAddress, // address of token contract
-      gasLimit: 50000000, // uint32
+      gasLimit: 500000, // uint32
       adminAddress: await signer.getAddress(), // address msg.send addrses
       triggerType: 0, // uint8
       checkData: "0x", // bytes
       triggerConfig: "0x", // bytes
       offchainConfig: "0x", // bytes
-      amount: ethers.utils.parseEther("1"), // uint96
+      amount: ethers.utils.parseEther("4"), // uint96
   };
+
 
   const tx2 = await _token.registerAndPredictID(registrationParams);
   await tx2.wait()
