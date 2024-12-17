@@ -20,6 +20,10 @@ export async function listenEvent() {
 
       // Execute upkeep registration logic
       try {
+        await TokenModel.findOneAndUpdate(
+          { token },
+          { $set: {status: "completed" } } 
+        );
         await registerUpkeep(token);
       } catch (err) {
         console.error(`Error during upkeep registration for token ${token}:`, err);
@@ -80,7 +84,7 @@ async function registerUpkeep(tokenAddress: string) {
 
   await TokenModel.findOneAndUpdate(
     { tokenAddress },
-    { $set: { countdown : timestamp } } 
+    { $set: { countdown: timestamp } } 
   );
 
 
