@@ -14,9 +14,9 @@ export const PORT = process.env.PORT || 9000
 export const JWT_SECRET = process.env.JWT_SECRET || "JWT_SECRET";
 export const pvt_key = process.env.PVT_KEY || "";
 export const Bidding = {
-  Address: "0xA83B86519fEfd3E0Cbd617C1B9850842d14Ad779",
+  Address: "0xDFeAAB3b097a8c00C3a886f8D57Da5ba6D711ab5",
   ABI : biddingAbi,
 }
 export const TokenABI = tokenAbi
-export const RPC = "https://sepolia.base.org";
-export const Link = "0xE4aB69C077896252FAFBD49EFD26B5D171A32410";
+export const RPC = "https://eth-sepolia.public.blastapi.io";
+export const Link = "0x779877A7B0D9E8603169DdbD7836e478b4624789";
