@@ -1,88 +1,82 @@
+# PotDotBid Backend
+
+This is the backend service for **PotDotBid**, It is built using **Node.js** and **MongoDB** and provides APIs to store user details, trade history, and includes a script to register **Chainlink Automation** once a token migrates.
 
 ## Features
+- User authentication and authorization using JWT.
+- Stores user details and trade history.
+- Chainlink Automation registration script.
+- REST API built with Express.js.
+- MongoDB for data storage.
 
-- User signup: Register new users with unique usernames and passwords.
-- User signin: Allow registered users to authenticate and access protected resources.
-- User referral: User can refer someone and check if user signup by referral.
-- User Authentication: Secure routes and endpoints using JWT (JSON Web Tokens) for authentication.
-- Vercel deployment: Optimized for deployment on the Vercel platform for seamless hosting and scalability.
+## Tech Stack
+- **Node.js**
+- **Express.js**
+- **MongoDB (Mongoose ORM)**
+- **JWT Authentication**
 
-## Technologies Used
+## Installation
 
-- **Node.js**: A JavaScript runtime environment for building scalable and efficient server-side applications.
-- **Express.js**: A minimalist web framework for Node.js, providing a robust set of features for web and mobile applications.
-- **JWT (JSON Web Tokens)**: A compact, URL-safe means of representing claims to be transferred between two parties. It's used for securing routes and endpoints.
-- **Vercel**: A cloud platform for static sites and Serverless Functions, providing seamless deployment and scalability.
+### Prerequisites
+Ensure you have the following installed:
+- [Node.js](https://nodejs.org/)
+- [MongoDB](https://www.mongodb.com/)
 
-## Getting Started
+### Setup
+Clone the repository:
+```sh
+ git clone https://github.com/Divy027/potdotbid-BE.git
+ cd potdotbid-BE
+```
 
-1. **Clone the repository**:
+Install dependencies:
+```sh
+ npm install
+```
 
-   ```
-   git clone https://github.com/dapp-sculptor/node-express-boilerplate.git
-   ```
+## Environment Variables
+Create a `.env` file in the root directory and add the following:
 
-2. **Install dependencies**:
+```env
+JWT_SECRET=
 
-   ```
-   cd your-project
-   npm install
-   ```
+# Database Configuration
+MONGO_URL=
+# Server Configuration
+PORT=5050
+PVT_KEY=
+RPC_ENDPOINT=''
+```
 
-3. **Set up environment variables**:
+> ⚠️ **Security Note:** Do not expose your `.env` file publicly. Use environment variables securely in a `.env.example` file for reference.
 
-   Create a `.env` file in the root directory of your project and add the following variables:
+## Running the Server
+Start the development server:
+```sh
+ npm run dev
+```
 
-   ```
-   # JWT token secret key
-   JWT_SECRET = 
+The server will be running on `http://localhost:5050` (or the specified `PORT` in `.env`).
 
-   # DB CONFIGURATION
-   DB_NAME = 
-   DB_USERNAME = 
-   DB_PASSWORD = 
-   DB_HOST = 
-   DB_PORT = 
+## API Endpoints
 
-   # PORT
-   PORT = 
-   ```
+### User Authentication
+- `POST /api/auth/register` - Register a new user
+- `POST /api/auth/login` - Login and get a JWT token
 
-4. **Start the server**:
+### Trade History
+- `GET /api/trades` - Fetch all trade history
+- `POST /api/trades` - Add new trade history entry
 
-   ```
-   npm start
-   ```
+### Chainlink Automation
+- `POST /api/automation/register` - Register automation once token migrates
 
-   This will start the server at `http://localhost:9000` by default.
+## Contributing
+Feel free to contribute by submitting pull requests or opening issues.
 
-## Usage
+## License
+This project is licensed under the MIT License.
 
-- **Signup Endpoint**:
-  - Endpoint: `POST /api/signup`
-  - Request body:
-    ```json
-    {
-      "username": "example",
-      "email": "example",
-      "password": "example",
-      "encodedReferrer": "example"
-    }
-    ```
-- **Signin Endpoint**:
-  - Endpoint: `POST /api/signin`
-  - Request body:
-    ```json
-    {
-      "username": "example",
-      "password": "password"
-    }
-    ```
+---
+**Repository:** [GitHub](https://github.com/Divy027/potdotbid-BE)
 
-## Deployment on Vercel
-
-To deploy your backend on Vercel:
-
-1. Sign up or log in to your Vercel account.
-2. Import your project repository.
-3. Follow the Vercel deployment instructions.
