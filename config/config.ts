@@ -14,7 +14,7 @@ export const PORT = process.env.PORT || 9000
 export const JWT_SECRET = process.env.JWT_SECRET || "JWT_SECRET";
 export const pvt_key = process.env.PVT_KEY || "";
 export const Bidding = {
-  Address: "0xDFeAAB3b097a8c00C3a886f8D57Da5ba6D711ab5",
+  Address: "0x745C456D05F7e8f8E66bfeDF3183D0Ba1952b805",
   ABI : biddingAbi,
 }
 export const TokenABI = tokenAbi
