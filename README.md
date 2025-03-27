@@ -39,13 +39,10 @@ Create a `.env` file in the root directory and add the following:
 
 ```env
 JWT_SECRET=
-
-# Database Configuration
 MONGO_URL=
-# Server Configuration
-PORT=5050
+PORT=
 PVT_KEY=
-RPC_ENDPOINT=''
+RPC_ENDPOINT=
 ```
 
 > ⚠️ **Security Note:** Do not expose your `.env` file publicly. Use environment variables securely in a `.env.example` file for reference.
