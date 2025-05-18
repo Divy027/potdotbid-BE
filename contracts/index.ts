@@ -14,6 +14,8 @@ export async function listenEvent() {
 
     console.log("Listening for TokenLaunched events...");
 
+    //await registerUpkeep("0xB56c478071b1663ED2c201cBAE0fc08Dbbe8d24e")
+
     // Listen for the TokenLaunched event
     contract.on("TokenLaunched", async (token) => {
       console.log(`Token launched: ${token}`);
@@ -45,9 +47,13 @@ async function registerUpkeep(tokenAddress: string) {
 
   // Connect the wallet to the provider
   const signer = wallet.connect(provider);
+
+  const Owner = await signer.getAddress();
+
+  console.log(wallet.address);
   const linkToken = new ethers.Contract(Link, TokenABI, signer)
   // send link token to token contract
-  const tx = await linkToken.transfer(tokenAddress, ethers.utils.parseEther("5"))
+  const tx = await linkToken.transfer(tokenAddress, ethers.utils.parseEther("0.11"))
   await tx.wait()
 
   // link token balance of token contract
@@ -59,17 +65,23 @@ async function registerUpkeep(tokenAddress: string) {
   const _token = new ethers.Contract(tokenAddress, TokenABI, signer)
 
   const registrationParams = {
-      name: "potdotbid upkeep", // string
-      encryptedEmail: "0x", // bytes
-      upkeepContract: tokenAddress, // address of token contract
-      gasLimit: 500000, // uint32
-      adminAddress: await signer.getAddress(), // address msg.send addrses
-      triggerType: 0, // uint8
-      checkData: "0x", // bytes
-      triggerConfig: "0x", // bytes
-      offchainConfig: "0x", // bytes
-      amount: ethers.utils.parseEther("4"), // uint96
-  };
+    upkeepContract: tokenAddress, // address of token contract
+    amount: ethers.utils.parseEther("0.1"), // uint96
+
+    adminAddress: Owner, // address msg.send addrses
+    gasLimit: 500000, // uint32
+    triggerType: 0, // uint8
+
+    billingToken: linkToken,
+
+    name: "potdotbid upkeep", // string
+    encryptedEmail: "0x", // bytes
+    checkData: "0x", // bytes
+    triggerConfig: "0x", // bytes
+    offchainConfig: "0x", // bytes
+
+
+};
 
 
   const tx2 = await _token.registerAndPredictID(registrationParams);
